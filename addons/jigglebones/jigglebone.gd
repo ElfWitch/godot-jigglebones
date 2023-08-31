@@ -14,6 +14,7 @@ enum Axis {
 			var temp_bone_id = skeleton.find_bone(bone_name)
 			if temp_bone_id != -1:
 				bone_id = temp_bone_id
+				bone_id_parent = skeleton.get_bone_parent(bone_id)
 			
 		
 @export_range(0.1,100,0.1) var stiffness: float = 1
@@ -28,6 +29,7 @@ var bone_id: int
 var bone_id_parent: int
 var collision_sphere: CollisionShape3D
 var prev_pos: Vector3
+
 
 
 func set_collision_shape(path:NodePath) -> void:
@@ -46,14 +48,14 @@ func _ready() -> void:
 	skeleton.clear_bones_global_pose_override()
 	prev_pos = global_transform.origin
 	set_collision_shape(collision_shape)
-
-
+	
+	
 	assert(! (is_nan(position.x) or is_inf(position.x)), "%s: Bone position corrupted" % [ name ])
 	assert(bone_name, "%s: Please enter a bone name" % [ name ])
 	bone_id = skeleton.find_bone(bone_name)
 	assert(bone_id != -1, "%s: Unknown bone %s - Please enter a valid bone name" % [ name, bone_name ])
 	bone_id_parent = skeleton.get_bone_parent(bone_id)
-
+	
 	set_physics_process(true)
 
 
@@ -69,7 +71,14 @@ func _physics_process(delta) -> void:
 	var bone_transf_world: Transform3D = skeleton.global_transform * bone_transf_obj
 
 	var bone_transf_rest_local: Transform3D = skeleton.get_bone_rest(bone_id)
-	var bone_transf_rest_obj: Transform3D = skeleton.get_bone_global_pose(bone_id_parent) * bone_transf_rest_local
+	
+	var bone_transf_rest_obj: Transform3D
+	
+	if bone_id_parent == -1:
+		bone_transf_rest_obj = Transform3D.IDENTITY
+	else:
+		bone_transf_rest_obj = skeleton.get_bone_global_pose(bone_id_parent) * bone_transf_rest_local
+	
 	var bone_transf_rest_world: Transform3D = skeleton.global_transform * bone_transf_rest_obj
 
 	############### Integrate velocity (Verlet integration) ##############	
